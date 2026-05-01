@@ -1,26 +1,27 @@
 # pd/
 
-Physical design / place-and-route flow (e.g. Cadence Innovus, Synopsys ICC2,
-or OpenROAD for the SkyWater 130 nm Chipathon shuttle).
+Physical design / place-and-route flow (Cadence Innovus, Synopsys ICC2,
+or OpenROAD targeting the SkyWater 130 nm shuttle).
 
 ## Layout
 
-- `scripts/` — flow scripts: floorplan, powerplan, placement, CTS, routing,
-  signoff.
-- `floorplan/` — DEF/FP TCL, pin placement, macro placement guides.
-- `tech/` — PDK setup (tech LEF, captables, RC corners).
-- `reports/` — per-stage timing/DRC/LVS/power reports (gitignored except
-  signoff summaries).
-- `outputs/` — final GDS, DEF, LEF, SPEF, netlist (gitignored — large).
+- `scripts/` — flow scripts: floorplan, power plan, placement, CTS,
+  routing, signoff.
+- `floorplan/` — DEF and floorplan TCL, pin placement, macro guides.
+- `tech/` — PDK setup (technology LEF, captables, RC corners).
+- `reports/` — per-stage timing, DRC, LVS, and power reports (gitignored
+  except signoff summaries).
+- `outputs/` — final GDS, DEF, LEF, SPEF, and netlist (gitignored).
 - `logs/` — tool transcripts (gitignored).
 
 ## Inputs
 
-- Gate-level netlist + post-synth SDC from [`../dc/`](../dc).
+- Gate-level netlist and post-synth SDC from [`../dc/`](../dc).
 - Shared timing constraints from [`../constraints/`](../constraints).
 
 ## Signoff outputs
 
-- `outputs/<top>.gds` — for tape-out.
-- `outputs/<top>.spef` — for post-route STA.
-- `outputs/<top>.sdf` — for gate-level simulation in [`../sim/`](../sim).
+- `outputs/<top>.gds` — tape-out database.
+- `outputs/<top>.spef` — parasitics for post-route STA.
+- `outputs/<top>.sdf` — back-annotation for gate-level simulation in
+  [`../sim/`](../sim).

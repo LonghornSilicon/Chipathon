@@ -1,27 +1,31 @@
 # dc/
 
-Synopsys Design Compiler flow: RTL → gate-level netlist.
+Synopsys Design Compiler synthesis flow (RTL to gate-level netlist).
 
 ## Layout
 
-- `scripts/` — `*.tcl` flow scripts (`setup.tcl`, `read_design.tcl`,
+- `scripts/` — flow scripts (`setup.tcl`, `read_design.tcl`,
   `compile.tcl`, `reports.tcl`).
-- `rm_setup/` — library setup (target/link libraries, search paths, MW/NDM).
-- `reports/` — timing/area/power reports per run (gitignored except summaries).
-- `outputs/` — gate-level netlist, SDF, and post-synth SDC (gitignored).
-- `logs/` — DC log/transcript files (gitignored).
+- `rm_setup/` — library setup (target/link libraries, search paths,
+  Milkyway / NDM references).
+- `reports/` — timing, area, and power reports per run (gitignored except
+  signoff summaries).
+- `outputs/` — gate-level netlist, SDF, post-synth SDC (gitignored).
+- `logs/` — tool transcripts (gitignored).
 
 ## Inputs
 
 - RTL from [`../rtl/`](../rtl).
-- Constraints from [`../constraints/`](../constraints) (shared SDC).
+- Constraints from [`../constraints/`](../constraints).
 
-## Outputs (handed off to PD)
+## Outputs
 
-- `outputs/<top>.mapped.v` — gate-level netlist.
-- `outputs/<top>.mapped.sdc` — post-synth constraints for [`../pd/`](../pd).
+- `outputs/<top>.mapped.v` — gate-level netlist consumed by
+  [`../pd/`](../pd).
+- `outputs/<top>.mapped.sdc` — post-synth constraints consumed by
+  [`../pd/`](../pd).
 
-## Run
+## Invocation
 
 ```bash
 dc_shell -f scripts/run_dc.tcl | tee logs/dc.log

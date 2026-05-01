@@ -1,21 +1,22 @@
 # constraints/
 
-Timing and design constraints shared across synthesis ([`../dc/`](../dc)),
-physical design ([`../pd/`](../pd)), and STA / gate-level simulation
-([`../sim/`](../sim)).
+Timing and design constraints shared across synthesis
+([`../dc/`](../dc)), physical design ([`../pd/`](../pd)), and STA /
+gate-level simulation ([`../sim/`](../sim)).
 
 ## Layout
 
 - `<top>.sdc` — primary SDC for the top-level design.
-- `<block>.sdc` — block-level constraints reused for hierarchical flows.
-- `clocks.tcl` — clock definitions, groups, and uncertainty (sourced by SDCs).
-- `io.tcl` — input/output delay budgets and driving cells / loads.
-- `exceptions.tcl` — false paths, multicycle paths (with justifications in
-  comments).
+- `<block>.sdc` — block-level constraints for hierarchical flows.
+- `clocks.tcl` — clock definitions, clock groups, and uncertainty.
+- `io.tcl` — input/output delay budgets, driving cells, and loads.
+- `exceptions.tcl` — false paths and multicycle paths, with justifying
+  comments.
 
 ## Conventions
 
-- One source of truth — DC and PD both read from this folder; never fork.
-- Every exception has a comment explaining *why* (architectural reason).
-- Corners (typ/fast/slow, voltage/temperature) parameterized so the same
-  SDC works across MMMC views.
+- Single source of truth: synthesis and physical design read from this
+  directory; do not fork.
+- Every timing exception is annotated with the architectural reason.
+- Corner-dependent values are parameterized so the same SDC applies
+  across MMMC views (typical / fast / slow, voltage, temperature).

@@ -1,25 +1,29 @@
 # microarchitecture/
 
-Per-block microarchitecture specs. One markdown file per block in
-[`../../rtl/`](../../rtl) (e.g. `<block>.md`).
+Per-block microarchitecture specifications. One markdown document per
+block in [`../../rtl/`](../../rtl), named `<block>.md`.
 
-## What each block doc should cover
+## Document template
 
-- **Purpose** — one sentence on what this block does in the chip.
-- **Interfaces** — port list, protocols (valid/ready, AXI, custom), clock and
-  reset domains.
-- **Microarchitecture** — pipeline stages, FSMs, datapath width, key
-  structures (FIFOs, RAMs, CAMs) with sizes.
-- **Performance** — target throughput, latency, expected critical path.
-- **Area / power budget** — rough numbers; updated from
-  [`../../dc/reports/`](../../dc) once synthesis runs.
-- **Verification hooks** — coverage points, assertions, links to UVM tests
-  in [`../../tb/tests/`](../../tb).
-- **Open issues / TODOs** — known gaps so reviewers don't have to guess.
+Each block document contains:
+
+- **Purpose** — role of the block in the system.
+- **Interfaces** — port list, protocols (valid/ready, AXI, custom),
+  clock and reset domains.
+- **Microarchitecture** — pipeline stages, FSMs, datapath width, and
+  storage structures (FIFOs, RAMs, CAMs) with sizes.
+- **Performance** — target throughput, latency, and expected critical
+  path.
+- **Area and power** — budgeted values; updated from
+  [`../../dc/reports/`](../../dc) once synthesis is run.
+- **Verification** — coverage points, assertions, and links to UVM
+  tests in [`../../tb/tests/`](../../tb).
+- **Open items** — known gaps and pending work.
 
 ## Conventions
 
-- Diagrams go in [`../images/`](../images) and are referenced relatively.
-- This folder describes the RTL — the RTL itself in
-  [`../../rtl/`](../../rtl) remains the source of truth. Update both in the
-  same PR when behavior changes.
+- Diagrams are stored in [`../images/`](../images) and referenced via
+  relative paths.
+- The RTL in [`../../rtl/`](../../rtl) is the source of truth;
+  microarchitecture documents and RTL are updated in the same change
+  set when behavior changes.

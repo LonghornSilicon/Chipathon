@@ -1,22 +1,25 @@
 # docs/
 
-Recruiter- and reviewer-facing documentation. This is the first stop for
-anyone who didn't write the RTL.
+Project documentation: architecture, microarchitecture, verification
+plan, and results.
 
-## Suggested contents
+## Contents
 
-- `architecture.md` — block diagram, top-level data/control flow, key choices.
-- `microarchitecture/` — per-block specs (interfaces, FSMs, pipeline diagrams).
-- `verification_plan.md` — features, coverage goals, test matrix mapped to
-  [`../tb/tests/`](../tb).
-- `results.md` — synthesis area/power/timing summary from [`../dc/`](../dc)
-  and post-route signoff from [`../pd/`](../pd).
-- `tapeout_checklist.md` — DRC/LVS/STA/power signoff sign-offs for the shuttle.
-- `images/` — diagrams, screenshots (waveforms, layouts, reports).
+- `architecture.md` — top-level block diagram, data and control flow,
+  and architectural decisions.
+- [`microarchitecture/`](microarchitecture) — per-block specifications
+  (interfaces, FSMs, pipeline diagrams).
+- `verification_plan.md` — features, coverage goals, and the test
+  matrix mapped to [`../tb/tests/`](../tb).
+- `results.md` — synthesis PPA from [`../dc/`](../dc) and post-route
+  signoff from [`../pd/`](../pd).
+- `tapeout_checklist.md` — DRC, LVS, STA, and power signoff status.
+- `images/` — diagrams and screenshots referenced from the documents
+  above.
 
 ## Conventions
 
-- Lead with a one-page summary: what the chip does, why it's interesting,
-  headline PPA numbers, and a layout screenshot.
-- Link out to the actual source / reports — don't duplicate numbers that
-  live in [`../dc/reports/`](../dc) or [`../pd/reports/`](../pd).
+- Documents reference numerical results from [`../dc/reports/`](../dc)
+  and [`../pd/reports/`](../pd) rather than restating them inline.
+- Documents and the RTL they describe are updated in the same change
+  set.
