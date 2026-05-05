@@ -13,8 +13,9 @@ IEEE SSCS Chipathon — 130 nm tape-out project.
 | `sim/` | Simulation run area (RTL and gate-level). |
 | `docs/` | Architecture, verification plan, results. |
 
-All subdirectories are currently empty placeholders awaiting initial
-content.
+Per-design OpenLane configs live at `pd/<design>/config.json` and
+reference the shared SDC at `constraints/<design>.sdc`. See
+[pd/README.md](pd/README.md) for the per-block hardening recipe.
 
 ## Flow overview
 

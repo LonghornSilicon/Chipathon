@@ -1,0 +1,5 @@
+# OpenLane writes per-invocation outputs (multi-GB) to runs/<tag>/.
+# These are reproducible from config.json + RTL + SDC and must not be committed.
+runs/
+**/runs/
+*.log
