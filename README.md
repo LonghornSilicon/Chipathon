@@ -12,7 +12,7 @@ IEEE SSCS Chipathon — 130 nm tape-out project.
 | `dc/` | Synopsys Design Compiler synthesis flow. |
 | `pd/` | Physical design / place-and-route flow. |
 | `sim/` | Simulation run area (RTL and gate-level). |
-| `docs/` | Architecture, microarchitecture, verification plan, results. |
+| `docs/` | Architecture, verification plan, results. |
 
 All subdirectories are currently empty placeholders awaiting initial
 content.
