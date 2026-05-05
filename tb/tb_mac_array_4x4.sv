@@ -31,18 +31,27 @@ module tb_mac_array_4x4;
     localparam int ACC_W  = 20;
     localparam int OUT_W  = ACC_W + $clog2(ROWS);
 
-    logic                     clk;
-    logic                     rst_n;
-    logic                     en;
-    logic                     load_weight;
-    logic                     clear_acc;
-    logic signed [DATA_W-1:0] weight_i [ROWS][COLS];
-    logic signed [DATA_W-1:0] act_i    [ROWS];
-    logic signed [OUT_W-1:0]  col_o    [COLS];
+    logic                                clk;
+    logic                                rst_n;
+    logic                                en;
+    logic                                load_weight;
+    logic                                clear_acc;
+    logic signed [ROWS*COLS*DATA_W-1:0]  weight_flat_i;
+    logic signed [ROWS*DATA_W-1:0]       act_flat_i;
+    logic signed [COLS*OUT_W-1:0]        col_flat_o;
 
     int unsigned err_count   = 0;
     int unsigned check_count = 0;
     bit          verbose     = 1'b0;
+
+    // Per-column accessor that unpacks col_flat_o for self-checks. Tasks
+    // below pack act_flat_i / weight_flat_i inline in their for loops
+    // (Verilator does not propagate procedural writes through always_comb
+    // or continuous assigns reading unpacked arrays in the TB scope, so
+    // we drive the flat ports directly).
+    function automatic logic signed [OUT_W-1:0] col_get(input int c);
+        return col_flat_o[c*OUT_W +: OUT_W];
+    endfunction
 
     mac_array_4x4 #(
         .ROWS   (ROWS),
@@ -51,28 +60,26 @@ module tb_mac_array_4x4;
         .ACC_W  (ACC_W),
         .OUT_W  (OUT_W)
     ) dut (
-        .clk         (clk),
-        .rst_n       (rst_n),
-        .en          (en),
-        .load_weight (load_weight),
-        .clear_acc   (clear_acc),
-        .weight_i    (weight_i),
-        .act_i       (act_i),
-        .col_o       (col_o)
+        .clk           (clk),
+        .rst_n         (rst_n),
+        .en            (en),
+        .load_weight   (load_weight),
+        .clear_acc     (clear_acc),
+        .weight_flat_i (weight_flat_i),
+        .act_flat_i    (act_flat_i),
+        .col_flat_o    (col_flat_o)
     );
 
     initial clk = 1'b0;
     always #5 clk <= ~clk;
 
     task automatic apply_reset(input int n_cycles = 4);
-        rst_n       = 1'b0;
-        en          = 1'b0;
-        load_weight = 1'b0;
-        clear_acc   = 1'b0;
-        for (int r = 0; r < ROWS; r++) act_i[r] = '0;
-        for (int r = 0; r < ROWS; r++)
-            for (int c = 0; c < COLS; c++)
-                weight_i[r][c] = '0;
+        rst_n         = 1'b0;
+        en            = 1'b0;
+        load_weight   = 1'b0;
+        clear_acc     = 1'b0;
+        act_flat_i    = '0;
+        weight_flat_i = '0;
         repeat (n_cycles) @(posedge clk);
         rst_n = 1'b1;
     endtask
@@ -83,19 +90,17 @@ module tb_mac_array_4x4;
         en          = 1'b0;
         for (int r = 0; r < ROWS; r++)
             for (int c = 0; c < COLS; c++)
-                weight_i[r][c] = w[r][c];
+                weight_flat_i[(r*COLS + c)*DATA_W +: DATA_W] = w[r][c];
         @(posedge clk);
-        load_weight = 1'b0;
-        for (int r = 0; r < ROWS; r++)
-            for (int c = 0; c < COLS; c++)
-                weight_i[r][c] = '0;
+        load_weight   = 1'b0;
+        weight_flat_i = '0;
     endtask
 
     task automatic clear_all();
         load_weight = 1'b0;
         clear_acc   = 1'b1;
         en          = 1'b0;
-        for (int r = 0; r < ROWS; r++) act_i[r] = '0;
+        act_flat_i  = '0;
         @(posedge clk);
         clear_acc = 1'b0;
     endtask
@@ -104,31 +109,34 @@ module tb_mac_array_4x4;
         load_weight = 1'b0;
         clear_acc   = 1'b0;
         en          = 1'b1;
-        for (int r = 0; r < ROWS; r++) act_i[r] = acts[r];
+        for (int r = 0; r < ROWS; r++)
+            act_flat_i[r*DATA_W +: DATA_W] = acts[r];
         @(posedge clk);
-        en = 1'b0;
-        for (int r = 0; r < ROWS; r++) act_i[r] = '0;
+        en         = 1'b0;
+        act_flat_i = '0;
     endtask
 
     task automatic do_idle();
         load_weight = 1'b0;
         clear_acc   = 1'b0;
         en          = 1'b0;
-        for (int r = 0; r < ROWS; r++) act_i[r] = '0;
+        act_flat_i  = '0;
         @(posedge clk);
     endtask
 
     task automatic check_col(input logic signed [OUT_W-1:0] exp [COLS],
                              input string msg);
+        logic signed [OUT_W-1:0] got;
         for (int c = 0; c < COLS; c++) begin
             check_count++;
-            if (col_o[c] !== exp[c]) begin
+            got = col_get(c);
+            if (got !== exp[c]) begin
                 err_count++;
                 $error("[%0t] %s col[%0d]: expected %0d, got %0d",
-                       $time, msg, c, exp[c], col_o[c]);
+                       $time, msg, c, exp[c], got);
             end else if (verbose) begin
                 $display("[%0t] %s col[%0d]: OK (=%0d)",
-                         $time, msg, c, col_o[c]);
+                         $time, msg, c, got);
             end
         end
     endtask
