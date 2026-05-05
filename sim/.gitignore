@@ -1,0 +1,8 @@
+# Per-testbench build artifacts and run outputs.
+# The Makefile recreates these on demand.
+build/
+logs/
+waves/
+*.log
+*.fst
+*.vcd
