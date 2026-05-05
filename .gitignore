@@ -1,0 +1,30 @@
+# --- Simulation build artifacts ---
+# Verilator default output dir (override with --Mdir if you want a custom path).
+obj_dir/
+**/obj_dir/
+
+# Icarus Verilog
+*.vvp
+
+# Waveforms
+*.vcd
+*.fst
+*.ghw
+*.wlf
+
+# Generic logs / coverage
+*.log
+*.jou
+coverage/
+
+# --- Editor / OS junk ---
+.DS_Store
+*.swp
+*~
+
+# --- Python (cocotb, helper scripts) ---
+__pycache__/
+*.pyc
+.venv/
+
+# Note: pd/ has its own .gitignore for OpenLane runs/.
