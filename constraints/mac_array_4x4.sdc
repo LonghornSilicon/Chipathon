@@ -17,12 +17,16 @@ create_clock -name $CLK_NAME -period $CLK_PERIOD [get_ports $CLK_PORT]
 set_clock_uncertainty 0.25 [get_clocks $CLK_NAME]
 set_clock_transition  0.15 [get_clocks $CLK_NAME]
 
-set_input_delay  -clock $CLK_NAME $IO_DELAY \
-    [remove_from_collection [all_inputs] [get_ports $CLK_PORT]]
+# OpenSTA does not ship `remove_from_collection`, so build the data-input
+# port list with a Tcl `lsearch` exclusion of the clock port. Same idiom
+# used by the upstream OpenLane example SDCs.
+set data_inputs [lsearch -inline -all -not -exact \
+    [all_inputs] [get_ports $CLK_PORT]]
+
+set_input_delay  -clock $CLK_NAME $IO_DELAY $data_inputs
 set_output_delay -clock $CLK_NAME $IO_DELAY [all_outputs]
 
-set_driving_cell -lib_cell sky130_fd_sc_hd__inv_2 \
-    [remove_from_collection [all_inputs] [get_ports $CLK_PORT]]
+set_driving_cell -lib_cell sky130_fd_sc_hd__inv_2 $data_inputs
 set_load 0.05 [all_outputs]
 
 # TODO: replace with a proper reset-synchronizer constraint once one

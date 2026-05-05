@@ -7,14 +7,16 @@
   "CLOCK_PORT": "clk",
   "CLOCK_PERIOD": 25.0,
   "SDC_FILE": "dir::../../constraints/mac_array_4x4.sdc",
+  "PNR_SDC_FILE": "dir::../../constraints/mac_array_4x4.sdc",
+  "SIGNOFF_SDC_FILE": "dir::../../constraints/mac_array_4x4.sdc",
 
   "PDK": "sky130A",
   "STD_CELL_LIBRARY": "sky130_fd_sc_hd",
 
-  "FP_SIZING": "absolute",
-  "DIE_AREA": "0 0 350 350",
+  "FP_SIZING": "relative",
   "FP_CORE_UTIL": 35,
-  "PL_TARGET_DENSITY": 0.45,
+  "FP_ASPECT_RATIO": 1,
+  "PL_TARGET_DENSITY": 0.5,
 
   "SYNTH_STRATEGY": "AREA 0",
   "RUN_HEURISTIC_DIODE_INSERTION": true,

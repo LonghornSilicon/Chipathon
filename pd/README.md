@@ -9,6 +9,7 @@ in `../../rtl/` and shared timing constraints in `../../constraints/`.
 ```
 pd/
 ├── .gitignore           # keeps runs/ out of git
+├── Makefile             # wrapper around `openlane`
 └── <design>/
     └── config.json      # OpenLane 2 config for this block
 ```
@@ -21,18 +22,39 @@ Currently hardened blocks:
 
 ## Running
 
-From the repo root, with OpenLane 2 on `PATH` and `PDK_ROOT` pointing at
-a sky130A install:
+Prereqs: OpenLane 2 Python package on `PATH`, `PDK_ROOT` set (e.g.
+`volare enable --pdk sky130`), and either Docker (default) or the
+native EDA tools (yosys, openroad, magic, netgen, klayout) installed.
+
+From this directory:
 
 ```bash
-openlane pd/mac_array_4x4/config.json
+make check                       # verify openlane + PDK_ROOT + config
+make harden                      # default DESIGN=mac_array_4x4, DOCKERIZED=1
+make DESIGN=mac_array_4x4 harden # explicit form
+make DOCKERIZED=0 harden         # use native EDA tools instead of the container
+make summary                     # last run's metrics + report file list
+make view-gds                    # open final GDS in klayout
+make clean                       # wipe this design's runs/
+make list                        # list registered designs
 ```
 
-Outputs land under `pd/<design>/runs/<tag>/`:
+`DOCKERIZED=1` (the default) runs OpenLane inside the official container
+image, which bundles all EDA tools. The first run pulls a multi-GB
+image; subsequent runs reuse the cache.
 
-- `results/final/gds/<design>.gds` — final layout
-- `results/final/verilog/gl/<design>.v` — gate-level netlist (for sim)
-- `results/final/sdf/<design>.sdf` — back-annotation for GL sim
+Equivalent raw invocations (what `harden` does):
+
+```bash
+openlane --dockerized pd/mac_array_4x4/config.json   # DOCKERIZED=1
+openlane               pd/mac_array_4x4/config.json   # DOCKERIZED=0
+```
+
+Outputs land under `pd/<design>/runs/<tag>/final/`:
+
+- `gds/<design>.gds` — final layout
+- `nl/<design>.nl.v` — gate-level netlist (for sim)
+- `sdf/<design>.sdf` — SDF for back-annotated GL sim
 - `reports/signoff/` — STA, DRC, LVS reports
 
 ## Notes
