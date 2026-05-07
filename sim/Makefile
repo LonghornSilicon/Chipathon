@@ -34,6 +34,20 @@ BIN    := $(BUILD)/Vtb_$(TB)
 # Per-TB RTL filelists (leaf modules first).
 SRCS_int4_pe       := $(RTL_DIR)/int4_pe.sv
 SRCS_mac_array_4x4 := $(RTL_DIR)/int4_pe.sv $(RTL_DIR)/mac_array_4x4.sv
+SRCS_accum_bank    := $(RTL_DIR)/accum_bank.sv
+SRCS_requant_sat   := $(RTL_DIR)/requant_sat.sv
+SRCS_act_lut       := $(RTL_DIR)/act_lut.sv
+SRCS_weight_rom    := $(RTL_DIR)/weight_rom.sv
+SRCS_act_streamer  := $(RTL_DIR)/act_streamer.sv
+SRCS_ctrl_io       := $(RTL_DIR)/int4_pe.sv $(RTL_DIR)/mac_array_4x4.sv \
+                      $(RTL_DIR)/accum_bank.sv $(RTL_DIR)/weight_rom.sv \
+                      $(RTL_DIR)/act_streamer.sv $(RTL_DIR)/requant_sat.sv \
+                      $(RTL_DIR)/act_lut.sv $(RTL_DIR)/ctrl_io.sv
+SRCS_int4_mac_accel := $(RTL_DIR)/int4_pe.sv $(RTL_DIR)/mac_array_4x4.sv \
+                      $(RTL_DIR)/accum_bank.sv $(RTL_DIR)/weight_rom.sv \
+                      $(RTL_DIR)/act_streamer.sv $(RTL_DIR)/requant_sat.sv \
+                      $(RTL_DIR)/act_lut.sv $(RTL_DIR)/ctrl_io.sv \
+                      $(RTL_DIR)/int4_mac_accel.sv
 
 SRCS := $(SRCS_$(TB)) $(TB_DIR)/tb_$(TB).sv
 
@@ -80,6 +94,13 @@ view:
 all:
 	@$(MAKE) TB=int4_pe       run
 	@$(MAKE) TB=mac_array_4x4 run
+	@$(MAKE) TB=accum_bank    run
+	@$(MAKE) TB=requant_sat   run
+	@$(MAKE) TB=act_lut       run
+	@$(MAKE) TB=weight_rom    run
+	@$(MAKE) TB=act_streamer  run
+	@$(MAKE) TB=ctrl_io       run
+	@$(MAKE) TB=int4_mac_accel run
 
 clean:
 	rm -rf $(SIMDIR)

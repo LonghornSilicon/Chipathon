@@ -19,6 +19,13 @@ Currently hardened blocks:
 | Design | RTL top | SDC |
 | --- | --- | --- |
 | `mac_array_4x4` | [../rtl/mac_array_4x4.sv](../rtl/mac_array_4x4.sv) | [../constraints/mac_array_4x4.sdc](../constraints/mac_array_4x4.sdc) |
+| `accum_bank` | [../rtl/accum_bank.sv](../rtl/accum_bank.sv) | [../constraints/accum_bank.sdc](../constraints/accum_bank.sdc) |
+| `requant_sat` | [../rtl/requant_sat.sv](../rtl/requant_sat.sv) | [../constraints/requant_sat.sdc](../constraints/requant_sat.sdc) |
+| `act_lut` | [../rtl/act_lut.sv](../rtl/act_lut.sv) | [../constraints/act_lut.sdc](../constraints/act_lut.sdc) |
+| `weight_rom` | [../rtl/weight_rom.sv](../rtl/weight_rom.sv) | [../constraints/weight_rom.sdc](../constraints/weight_rom.sdc) |
+| `act_streamer` | [../rtl/act_streamer.sv](../rtl/act_streamer.sv) | [../constraints/act_streamer.sdc](../constraints/act_streamer.sdc) |
+| `ctrl_io` | [../rtl/ctrl_io.sv](../rtl/ctrl_io.sv) | [../constraints/ctrl_io.sdc](../constraints/ctrl_io.sdc) |
+| `int4_mac_accel` | [../rtl/int4_mac_accel.sv](../rtl/int4_mac_accel.sv) | [../constraints/int4_mac_accel.sdc](../constraints/int4_mac_accel.sdc) |
 
 ## Running
 
