@@ -1,0 +1,6 @@
+vec_id=7
+d=64, b=3
+||x||=502.7295
+norm_fp64=4021.8364  norm_fixed_int=4021
+cos_sim_fp64=0.98520  cos_sim_fixed=0.98671
+idx_match_fraction=0.9688

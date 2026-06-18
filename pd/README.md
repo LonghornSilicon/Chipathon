@@ -1,6 +1,6 @@
 # pd/
 
-OpenLane 2 hardening flow for each block we tape out. One subdirectory
+OpenLane 2 hardening flow for each TurboQuant block. One subdirectory
 per design; each holds its own `config.json` and references shared RTL
 in `../../rtl/` and shared timing constraints in `../../constraints/`.
 
@@ -14,18 +14,24 @@ pd/
     └── config.json      # OpenLane 2 config for this block
 ```
 
-Currently hardened blocks:
+## Blocks (planned)
 
-| Design | RTL top | SDC |
-| --- | --- | --- |
-| `mac_array_4x4` | [../rtl/mac_array_4x4.sv](../rtl/mac_array_4x4.sv) | [../constraints/mac_array_4x4.sdc](../constraints/mac_array_4x4.sdc) |
-| `accum_bank` | [../rtl/accum_bank.sv](../rtl/accum_bank.sv) | [../constraints/accum_bank.sdc](../constraints/accum_bank.sdc) |
-| `requant_sat` | [../rtl/requant_sat.sv](../rtl/requant_sat.sv) | [../constraints/requant_sat.sdc](../constraints/requant_sat.sdc) |
-| `act_lut` | [../rtl/act_lut.sv](../rtl/act_lut.sv) | [../constraints/act_lut.sdc](../constraints/act_lut.sdc) |
-| `weight_rom` | [../rtl/weight_rom.sv](../rtl/weight_rom.sv) | [../constraints/weight_rom.sdc](../constraints/weight_rom.sdc) |
-| `act_streamer` | [../rtl/act_streamer.sv](../rtl/act_streamer.sv) | [../constraints/act_streamer.sdc](../constraints/act_streamer.sdc) |
-| `ctrl_io` | [../rtl/ctrl_io.sv](../rtl/ctrl_io.sv) | [../constraints/ctrl_io.sdc](../constraints/ctrl_io.sdc) |
-| `int4_mac_accel` | [../rtl/int4_mac_accel.sv](../rtl/int4_mac_accel.sv) | [../constraints/int4_mac_accel.sdc](../constraints/int4_mac_accel.sdc) |
+These match the modules in [PLAN.md §5](../PLAN.md#5-module-decomposition).
+Per-block configs and SDCs land here as RTL stabilises.
+
+| Design          | RTL top                                 | Notes                              |
+| --------------- | --------------------------------------- | ---------------------------------- |
+| `sign_lfsr`     | [../rtl/sign_lfsr.sv](../rtl/sign_lfsr.sv)         | tiny — 16 flops + xor + fsm        |
+| `wht64`         | [../rtl/wht64.sv](../rtl/wht64.sv)                 | dominant area: 64×14b reg file     |
+| `norm2_acc`     | [../rtl/norm2_acc.sv](../rtl/norm2_acc.sv)         | one mult + 32-bit adder            |
+| `rsqrt_unit`    | [../rtl/rsqrt_unit.sv](../rtl/rsqrt_unit.sv)       | sequential isqrt + divider         |
+| `quant_unit`    | [../rtl/quant_unit.sv](../rtl/quant_unit.sv)       | mult + 7 parallel comparators      |
+| `codebook_rom`  | [../rtl/codebook_rom.sv](../rtl/codebook_rom.sv)   | trivial — flop-mapped constants    |
+| `bit_packer`    | [../rtl/bit_packer.sv](../rtl/bit_packer.sv)       | trivial — 11-bit shift register    |
+| `tq_top`        | [../rtl/tq_top.sv](../rtl/tq_top.sv)               | full encoder, TT pinout            |
+
+`tq_top` is the chip-level deliverable. The other entries are useful
+for area / timing characterisation per block during bring-up.
 
 ## Running
 
@@ -36,14 +42,14 @@ native EDA tools (yosys, openroad, magic, netgen, klayout) installed.
 From this directory:
 
 ```bash
-make check                       # verify openlane + PDK_ROOT + config
-make harden                      # default DESIGN=mac_array_4x4, DOCKERIZED=1
-make DESIGN=mac_array_4x4 harden # explicit form
-make DOCKERIZED=0 harden         # use native EDA tools instead of the container
-make summary                     # last run's metrics + report file list
-make view-gds                    # open final GDS in klayout
-make clean                       # wipe this design's runs/
-make list                        # list registered designs
+make check                     # verify openlane + PDK_ROOT + config
+make harden                    # default DESIGN=tq_top, DOCKERIZED=1
+make DESIGN=wht64 harden       # explicit form
+make DOCKERIZED=0 harden       # use native EDA tools instead of the container
+make summary                   # last run's metrics + report file list
+make view-gds                  # open final GDS in klayout
+make clean                     # wipe this design's runs/
+make list                      # list registered designs
 ```
 
 `DOCKERIZED=1` (the default) runs OpenLane inside the official container
@@ -53,8 +59,8 @@ image; subsequent runs reuse the cache.
 Equivalent raw invocations (what `harden` does):
 
 ```bash
-openlane --dockerized pd/mac_array_4x4/config.json   # DOCKERIZED=1
-openlane               pd/mac_array_4x4/config.json   # DOCKERIZED=0
+openlane --dockerized pd/tq_top/config.json   # DOCKERIZED=1
+openlane              pd/tq_top/config.json   # DOCKERIZED=0
 ```
 
 Outputs land under `pd/<design>/runs/<tag>/final/`:
@@ -66,9 +72,12 @@ Outputs land under `pd/<design>/runs/<tag>/final/`:
 
 ## Notes
 
-- `mac_array_4x4` exposes unpacked-array ports (`weight_i [ROWS][COLS]`,
-  `act_i [ROWS]`, `col_o [COLS]`). Yosys flattens these for synthesis,
-  which is fine for a block boundary; if this design ever becomes a
-  chip top, the ports must be packed into flat buses first.
-- The first-pass `DIE_AREA` (350x350 um) and `FP_CORE_UTIL` (35%) are
-  intentionally loose. Tighten after the first clean signoff.
+- `wht64` carries the chip's largest reg file (64 × 14 bits = 896
+  flops). Watch its post-synth area to decide whether SKY130 SRAM
+  macros are warranted in the next spin.
+- `quant_unit.bounds_in` is an unpacked-array port. Yosys flattens
+  these for block-level synthesis but if any of these blocks ever
+  become a chip-top by themselves, the ports must be packed into
+  flat buses first.
+- First-pass `DIE_AREA` and `FP_CORE_UTIL` per design will be intentionally
+  loose. Tighten after the first clean signoff.

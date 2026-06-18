@@ -4,16 +4,16 @@
 # Mirrors sim/Makefile's TB=<name> convention; here it is DESIGN=<name>.
 #
 # Usage:
-#   make check                       # verify openlane + PDK_ROOT + config
-#   make harden                      # default DESIGN=mac_array_4x4
-#   make DESIGN=mac_array_4x4 harden # explicit
+#   make check                  # verify openlane + PDK_ROOT + config
+#   make harden                 # default DESIGN=tq_top
+#   make DESIGN=wht64 harden    # explicit
 #   make summary
 #   make view-gds
 #   make clean
 #   make list
 
 ROOT     := $(abspath $(CURDIR)/..)
-DESIGN   ?= mac_array_4x4
+DESIGN   ?= tq_top
 
 OPENLANE   ?= openlane
 KLAYOUT    ?= klayout
