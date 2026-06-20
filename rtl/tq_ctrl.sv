@@ -121,7 +121,7 @@ module tq_ctrl #(
         S_ERR    = 4'hF
     } state_e;
 
-    state_e          state, next_state;
+    state_e          state, next_state, prev_state;
     logic [$clog2(D + 1)-1:0]      rx_count;
     logic [$clog2(D + 1)-1:0]      stream_count;
     logic [INV_W-1:0]              inv_norm_q;
@@ -133,12 +133,19 @@ module tq_ctrl #(
 
     // Sticky pulse latches generated in always_ff (decoupled from
     // next_state to avoid iverilog cross-block delta hangs).
-    logic                          lfsr_start_q;
-    logic                          wht_start_q;
-    logic                          wht_replay_start_q;
-    logic                          rs_in_valid_q;
     logic [7:0]                    tx_uo_q;
     logic [4:0]                    tx_idx;
+    // Registered chip_rx_ready. Held LOW during the IDLE→RX_X
+    // transition cycle so the host doesn't mistake the comb-settle of
+    // chip_rx_ready=1 (post-NBA) for an actual byte-accept slot. Only
+    // goes high once wht/lfsr have actually settled in their LOAD/run
+    // states at a cycle boundary.
+    logic                          chip_rx_ready_q;
+    // Registered chip_tx_valid. Lags by 1 cycle so the first byte
+    // emitted on uo_out (norm_buf[0]) lines up with chip_tx_valid=1;
+    // without this, the FIRST cycle of S_TX would publish a stale
+    // tx_uo_q=0 alongside chip_tx_valid=1.
+    logic                          chip_tx_valid_q;
 
     assign busy      = (state != S_IDLE);
     assign state_dbg = state;
@@ -157,33 +164,32 @@ module tq_ctrl #(
     // Explicit sensitivity list — iverilog's auto-sensitivity in @* /
     // always_comb deadlocks on this block (likely a settling-order issue
     // around the unpacked-array bp_out_byte / q_idx_out feed-in).
-    always @(state or lfsr_start_q or wht_start_q or wht_replay_start_q or
-             rs_in_valid_q or inv_norm_q or n2_norm2 or wht_in_ready or
+    always @(state or prev_state or next_state or n2_norm2 or wht_in_ready or
              lfsr_valid or wht_out_valid or wht_y_out or q_out_valid or
              q_idx_out or ui_in or lfsr_sign_bit or host_tx_valid or
-             tx_uo_q) begin
-        lfsr_start = lfsr_start_q;
-        // wht64
-        wht_start         = wht_start_q;
-        wht_replay_start  = wht_replay_start_q;
+             tx_uo_q or inv_norm_q or chip_rx_ready_q) begin
+        // Pulses derived from state vs prev_state (both registered) so
+        // the comb output is robust to Verilator's iterative settle of
+        // next_state. Each pulse is high for exactly one cycle: the
+        // first cycle the FSM is in the named state.
+        lfsr_start        = (state == S_RX_X    && prev_state == S_IDLE);
+        wht_start         = (state == S_RX_X    && prev_state == S_IDLE);
+        wht_replay_start  = ((state == S_NORM2 && prev_state == S_WAIT_C)
+                          || (state == S_QUANT && prev_state == S_RSQRT));
+        n2_clear          = (state == S_NORM2 && prev_state == S_WAIT_C);
+        bp_clear          = (state == S_QUANT && prev_state == S_RSQRT);
+        rs_in_valid       = (state == S_RSQRT && prev_state == S_NORM2);
         wht_in_valid      = 1'b0;
         wht_x_in          = '0;
         wht_x_sign        = 1'b1;
-        // norm2_acc
-        n2_clear     = 1'b0;   // TODO bring back state-based clear
-        n2_in_valid  = 1'b0;
-        n2_y_in      = '0;
-        // rsqrt
-        rs_in_valid  = rs_in_valid_q;
-        rs_norm2     = n2_norm2;
-        // quant
-        q_in_valid   = 1'b0;
-        q_y_i        = '0;
-        q_inv_norm   = inv_norm_q;
-        // bit_packer
-        bp_clear     = 1'b0;   // TODO bring back state-based clear
-        bp_idx_valid = 1'b0;
-        bp_idx       = '0;
+        n2_in_valid       = 1'b0;
+        n2_y_in           = '0;
+        rs_norm2          = n2_norm2;
+        q_in_valid        = 1'b0;
+        q_y_i             = '0;
+        q_inv_norm        = inv_norm_q;
+        bp_idx_valid      = 1'b0;
+        bp_idx            = '0;
         // host handshake
         chip_rx_ready = 1'b0;
         chip_tx_valid = 1'b0;
@@ -230,7 +236,7 @@ module tq_ctrl #(
             end
 
             S_TX: begin
-                chip_tx_valid = 1'b1;
+                chip_tx_valid = chip_tx_valid_q;
                 uo_out        = tx_uo_q;
             end
 
@@ -255,6 +261,9 @@ module tq_ctrl #(
                 if (ena && host_tx_valid) next_state = S_RX_X;
             end
             S_RX_X: begin
+                // Fires on the cycle where the D-th byte is being
+                // accepted: pre-NBA rx_count == D-1 AND the handshake
+                // is firing this same edge.
                 if (host_tx_valid && wht_in_ready && lfsr_valid &&
                     rx_count == ($clog2(D + 1))'(D - 1))
                     next_state = S_WAIT_C;
@@ -276,6 +285,7 @@ module tq_ctrl #(
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             state              <= S_IDLE;
+            prev_state         <= S_IDLE;
             rx_count           <= '0;
             stream_count       <= '0;
             tx_byte_count      <= '0;
@@ -283,24 +293,18 @@ module tq_ctrl #(
             norm_q             <= '0;
             idx_byte_wptr      <= '0;
             err_sticky         <= 1'b0;
-            lfsr_start_q       <= 1'b0;
-            wht_start_q        <= 1'b0;
-            wht_replay_start_q <= 1'b0;
-            rs_in_valid_q      <= 1'b0;
             tx_uo_q            <= '0;
+            chip_rx_ready_q    <= 1'b0;
+            chip_tx_valid_q    <= 1'b0;
             for (int i = 0; i < 2;  i++) norm_buf[i]     <= '0;
             for (int i = 0; i < 24; i++) idx_byte_buf[i] <= '0;
         end else begin
-            state <= next_state;
-
-            // Edge-driven pulse latches: pulse for ONE cycle when the
-            // FSM enters specific states. Decoupled from next_state via
-            // the registered ``state`` to avoid the iverilog hang.
-            lfsr_start_q       <= (state == S_IDLE && next_state == S_RX_X);
-            wht_start_q        <= (state == S_IDLE && next_state == S_RX_X);
-            wht_replay_start_q <= ((state == S_WAIT_C && next_state == S_NORM2)
-                                || (state == S_RSQRT && next_state == S_QUANT));
-            rs_in_valid_q      <= (state == S_NORM2 && next_state == S_RSQRT);
+            state      <= next_state;
+            prev_state <= state;
+            chip_rx_ready_q <= (state == S_RX_X) && wht_in_ready && lfsr_valid;
+            // chip_tx_valid_q goes high one cycle into S_TX, after
+            // tx_uo_q has been loaded with the first byte.
+            chip_tx_valid_q <= (state == S_TX);
 
             // Registered tx byte: avoids variable-index reads in always @*.
             if (state == S_TX) begin

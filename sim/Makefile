@@ -77,7 +77,11 @@ ifeq ($(SIM),iverilog)
   BIN_REL := build/tb_$(TB).vvp
   RUN     := $(VVP) -N $(BIN_REL)
 else ifeq ($(SIM),verilator)
-  BIN     := $(BUILD)/Vtb_$(TB)
+  # Verilator spawns its own GNU make in --Mdir; that nested make cannot
+  # handle the space in the parent path ("Longhorn Silicon"). Build under
+  # /tmp/<TB>/ instead and have the run target reach into it via symlink.
+  VBUILD  := /tmp/tq_$(TB)/build
+  BIN     := $(VBUILD)/Vtb_$(TB)
   BIN_REL := build/Vtb_$(TB)
   RUN     := ./$(BIN_REL)
 else
@@ -106,9 +110,13 @@ ifeq ($(SIM),iverilog)
 $(BIN): $(SRCS) | $(BUILD) $(LOGS)
 	$(IVERILOG) $(IFLAGS) -s tb_$(TB) -o $@ $(SRCS)
 else
-$(BIN): $(SRCS) | $(BUILD) $(LOGS)
+$(BIN): $(SRCS) | $(LOGS)
+	@mkdir -p $(VBUILD)
+	@rm -rf $(BUILD)
+	@mkdir -p $(SIMDIR)
+	@ln -sfn $(VBUILD) $(BUILD)
 	$(VERILATOR) $(VFLAGS) --top-module tb_$(TB) \
-	    --Mdir $(BUILD) -o Vtb_$(TB) $(SRCS)
+	    --Mdir $(VBUILD) -o Vtb_$(TB) $(SRCS)
 endif
 
 build: $(BIN)

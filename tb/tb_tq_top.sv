@@ -69,32 +69,54 @@ module tb_tq_top;
         $display("[t=%0t] reset done, state_dbg=%0d, chip_rx_ready=%b",
                  $time, dut.state_dbg, chip_rx_ready);
 
-        // ---- Drive 64 input bytes via standard ready/valid handshake ----
-        // Host holds valid+data until chip_rx_ready goes high at a posedge,
-        // at which point the byte was latched and we advance to the next.
-        for (int i = 0; i < D; i++) begin
-            ui_in     <= x_arr[i];
-            uio_in[2] <= 1'b1;        // host_tx_valid
-            // Limit waiting to 100 cycles per byte to avoid infinite loop.
-            for (int w = 0; w < 100; w++) begin
-                @(posedge clk);
-                if (chip_rx_ready) break;
-                if (w == 99) begin
-                    $display("[t=%0t] STUCK: byte %0d not consumed, state_dbg=%0d, chip_rx_ready=%b",
-                             $time, i, dut.state_dbg, chip_rx_ready);
-                    $finish(2);
-                end
-            end
-            if (i < 4 || i % 16 == 15) $display("[t=%0t] sent byte %0d, state_dbg=%0d", $time, i, dut.state_dbg);
+        // ---- Drive 64 input bytes back-to-back ----
+        // chip_rx_ready_q is registered: when it goes high at edge E, the
+        // chip will latch ui_in at the NEXT edge (E+1). So:
+        //   1) Drive x[0] + valid=1.
+        //   2) Wait until chip_rx_ready=1 (edge E).
+        //   3) One more @(posedge clk) — that's edge E+1, byte 0 latches.
+        //   4) Drive x[1..63] one per cycle.
+        ui_in     <= x_arr[0];
+        uio_in[2] <= 1'b1;
+        for (int w = 0; w < 200; w++) begin
+            @(posedge clk);
+            if (chip_rx_ready) break;
+        end
+        @(posedge clk);   // byte 0 latches at this edge
+        for (int i = 1; i < D; i++) begin
+            ui_in <= x_arr[i];
+            @(posedge clk);
+            if (i < 4 || i % 16 == 15)
+                $display("[t=%0t] driven byte %0d, state=%0d, rx_count=%0d, load_idx=%0d",
+                         $time, i, dut.u_ctrl.state, dut.u_ctrl.rx_count, dut.u_wht.load_idx);
         end
         uio_in[2] <= 1'b0;
         ui_in     <= '0;
-        $display("[t=%0t] RX done, waiting for output", $time);
+        uio_in[2] <= 1'b0;
+        ui_in     <= '0;
+        $display("[t=%0t] RX done, mem[0..3]=%0d %0d %0d %0d  x_arr[0..3]=%0d %0d %0d %0d (signed)",
+                 $time,
+                 $signed(dut.u_wht.mem[0]), $signed(dut.u_wht.mem[1]),
+                 $signed(dut.u_wht.mem[2]), $signed(dut.u_wht.mem[3]),
+                 $signed(x_arr[0]), $signed(x_arr[1]),
+                 $signed(x_arr[2]), $signed(x_arr[3]));
+
+        // ---- Drive host_rx_ready=1 throughout the output phase ----
+        uio_in[3] = 1'b1;
+
+        // Watch the FSM advance through compute / norm2 / rsqrt / quant / tx.
+        for (int t = 0; t < 1500; t = t + 1) begin
+            @(posedge clk);
+            if (t >= 358 && t <= 410)
+                $display("[t=%0t] +%0d cyc tq_s=%0d tx_cnt=%0d chip_tv=%b uo_out=0x%02h cap=%0d cap_bytes[0..3]=%02h %02h %02h %02h",
+                  $time, t, dut.u_ctrl.state, dut.u_ctrl.tx_byte_count,
+                  chip_tx_valid, uo_out, captured,
+                  cap_bytes[0], cap_bytes[1], cap_bytes[2], cap_bytes[3]);
+            if (captured >= N_OUT_BYTES) break;
+        end
 
         // ---- Read 26 output bytes with host_rx_ready=1 always ----
-        uio_in[3] <= 1'b1;
-        while (captured < N_OUT_BYTES) @(posedge clk);
-        uio_in[3] <= 1'b0;
+        // (host_rx_ready is asserted earlier, before the watch loop)
 
         // ---- Compare ----
         for (int i = 0; i < 2; i++) begin

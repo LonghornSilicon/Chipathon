@@ -125,6 +125,7 @@ module tq_top #(
     sign_lfsr #(.D(D), .SEED(LFSR_SEED), .MASK(LFSR_MASK)) u_lfsr (
         .clk(clk), .rst_n(rst_n),
         .start(lfsr_start),
+        .step(wht_in_valid),     // advance only when a byte is being latched
         .valid(lfsr_valid),
         .sign_bit(lfsr_sign_bit),
         .last()
@@ -167,11 +168,10 @@ module tq_top #(
         .N_BOUNDS(N_BOUNDS), .CB_W(CB_W)
     ) u_q (
         .clk(clk), .rst_n(rst_n),
-        .in_valid(1'b0), .y_i('0), .inv_norm(q_inv_norm),
+        .in_valid(q_in_valid), .y_i(q_y_i), .inv_norm(q_inv_norm),
         .bounds_in(bounds_all),
         .out_valid(q_out_valid), .idx_out(q_idx_out)
     );
-    // TEMP: tie quant inputs off to bisect a t=0 hang
 
     bit_packer #(.IDX_BITS(IDX_W), .N_INDICES(D)) u_bp (
         .clk(clk), .rst_n(rst_n),

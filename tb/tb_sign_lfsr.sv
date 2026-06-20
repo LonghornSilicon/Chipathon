@@ -23,6 +23,7 @@ module tb_sign_lfsr;
 
     sign_lfsr #(.D(D)) dut (
         .clk(clk), .rst_n(rst_n), .start(start),
+        .step(1'b1),
         .valid(valid), .sign_bit(sign_bit), .last(last)
     );
 

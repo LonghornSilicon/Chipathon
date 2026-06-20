@@ -33,6 +33,8 @@ module sign_lfsr #(
     input  logic clk,
     input  logic rst_n,
     input  logic start,        // pulse to (re)seed and begin streaming
+    input  logic step,         // when high, advance to the NEXT sign bit on the next edge.
+                               // Tie to 1'b1 to free-run (default in standalone TB).
     output logic valid,        // high while sign_bit is meaningful
     output logic sign_bit,     // LSB of state; map to ±1 outside
     output logic last          // pulses with the D-th valid bit
@@ -57,7 +59,7 @@ module sign_lfsr #(
             state   <= SEED;
             count   <= '0;
             running <= 1'b1;
-        end else if (running) begin
+        end else if (running && step) begin
             state <= state[0] ? ((state >> 1) ^ MASK) : (state >> 1);
             if (count == CW'(D - 1)) begin
                 running <= 1'b0;
